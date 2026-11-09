@@ -27,7 +27,6 @@ jobs:
     timeout-minutes: 25
     permissions:
       contents: read
-      pages: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -40,7 +39,6 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - name: Merge XMLTV sources
         run: python merge_epg.py --namespace-channels --allow-partial
-      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
           path: public
@@ -55,5 +53,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Check GitHub Pages setup
+        id: pages
+        continue-on-error: true
+        uses: actions/configure-pages@v5
+      - name: Explain required Pages setup
+        if: steps.pages.outcome == 'failure'
+        env:
+          REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          echo "::error title=GitHub Pages setup required::Open ${REPOSITORY_URL}/settings/pages and select GitHub Actions under Build and deployment > Source, then rerun this workflow. Each repository needs its own Pages setup."
+          echo "The build completed and the EPG files are retained in the github-pages artifact."
+          exit 1
       - uses: actions/deploy-pages@v4
         id: deployment
